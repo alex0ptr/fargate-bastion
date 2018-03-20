@@ -45,4 +45,4 @@ ssh ops@54.89.100.178 -p 42
 
 
 ## About me
-Hi, I'm Alex. I work as a (Cloud) Developer, am passionate about DevOps, cloud-native microservices and the reactive programming paradigm. Say hi to me on Twitter: `@alex0ptr`.
+Hi! I'm Alex, a Cloud Developer passionate about DevOps, cloud-native microservices and the reactive programming paradigm. Say hi to me on Twitter: `@alex0ptr`.
