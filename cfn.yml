@@ -1,0 +1,194 @@
+AWSTemplateFormatVersion: 2010-09-09
+Resources:
+  
+  BastionConfigBucket:
+    Type: 'AWS::S3::Bucket'
+    Properties: 
+      BucketName: !Sub ${AWS::StackName}-keyfiles-${AWS::AccountId}
+  
+  BastionImageRepository: 
+    Type: "AWS::ECR::Repository"
+    Properties: 
+      RepositoryName: !Sub "alex0ptr/aws-bastion-${AWS::StackName}"
+  
+  FargateCluster:
+    Type: "AWS::ECS::Cluster"
+    Properties:
+      ClusterName: !Sub ${AWS::StackName}-cluster
+
+  BastionLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties: 
+      LogGroupName: !Sub ${AWS::StackName}-bastion
+      RetentionInDays: 1
+  
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: bastion
+      Cpu: 256
+      Memory: 512
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn: !Ref TaskExecutionRole
+      TaskRoleArn: !Ref TaskRole
+      ContainerDefinitions:
+        - Name: bastion
+          Cpu: 256
+          Memory: 512
+          Image: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${BastionImageRepository}:latest
+          PortMappings:
+            - ContainerPort: 42
+              HostPort: 42
+          Environment:
+            - Name: S3_BUCKET_NAME
+              Value: !Sub ${AWS::StackName}-keyfiles-${AWS::AccountId}
+          Command:
+            - '/bin/sh'
+            - '/usr/local/bin/entrypoint.sh'
+            - '-p'
+            - '42'
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref BastionLogGroup
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: 'ssh'
+
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      CidrBlock: '10.0.0.0/16'
+
+  PublicSubnetOne:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select 
+        - 0
+        - !GetAZs 
+          Ref: 'AWS::Region'
+      VpcId: !Ref VPC
+      CidrBlock: '10.0.0.0/24'
+      MapPublicIpOnLaunch: true
+  
+  PublicSubnetTwo:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select 
+        - 1
+        - !GetAZs 
+          Ref: 'AWS::Region'
+      VpcId: !Ref 'VPC'
+      CidrBlock: '10.0.1.0/24'
+      MapPublicIpOnLaunch: true
+        
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+
+  GatewayAttachement:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref 'VPC'
+      InternetGatewayId: !Ref 'InternetGateway'
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref 'VPC'
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: GatewayAttachement
+    Properties:
+      RouteTableId: !Ref 'PublicRouteTable'
+      DestinationCidrBlock: '0.0.0.0/0'
+      GatewayId: !Ref 'InternetGateway'
+
+  PublicSubnetOneRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetOne
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnetTwoRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetTwo
+      RouteTableId: !Ref PublicRouteTable
+
+  BastionSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties: 
+      GroupName: fargate-bastion
+      GroupDescription: 'A security group to allow ingress to bastion hosts'
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: tcp
+          FromPort: 0
+          ToPort: 65535
+          Description: 'allows to communicate to everywhere'
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: udp
+          FromPort: 0
+          ToPort: 65535
+          Description: 'allows to communicate to everywhere'
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          Description: 'allows ssh on 42 from everywhere'
+          FromPort: 42
+          IpProtocol: tcp
+          ToPort: 42
+      VpcId: !Ref VPC
+          
+  TaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: [ecs-tasks.amazonaws.com]
+          Action: ['sts:AssumeRole']
+      Path: /
+      Policies:
+        - PolicyName: AmazonECSTaskExecutionRolePolicy
+          PolicyDocument:
+            Statement:
+            - Effect: Allow
+              Action:
+                - 'ecr:GetAuthorizationToken'
+                - 'ecr:BatchCheckLayerAvailability'
+                - 'ecr:GetDownloadUrlForLayer'
+                - 'ecr:BatchGetImage'
+
+                - 'logs:CreateLogStream'
+                - 'logs:PutLogEvents'
+              Resource: '*'
+
+  TaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: [ecs-tasks.amazonaws.com]
+          Action: ['sts:AssumeRole']
+      Path: /
+      Policies:
+        - PolicyName: AllowBastionConfigAccess
+          PolicyDocument:
+            Statement:
+            - Effect: Allow
+              Action:
+                - 's3:GetObject'
+                - 's3:ListBucket'
+              Resource:
+                - !GetAtt BastionConfigBucket.Arn
+                - !Sub 
+                  - ${BucketArn}/*
+                  - BucketArn: !GetAtt BastionConfigBucket.Arn
+
