@@ -5,7 +5,7 @@ WORKDIR /home
 ENV OPENSSH_VERSION 7.5_p1-r8
 ENV PYTHON_VERSION 2.7.14-r2
 ENV TINI_VERSION 0.16.1-r0
-ENV CURL_VERSION 7.58.0-r0
+ENV CURL_VERSION 7.60.0-r1
 
 RUN true && \
     echo "installing dependencys..." && \
