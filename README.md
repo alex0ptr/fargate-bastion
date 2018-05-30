@@ -16,7 +16,7 @@ The example consists of:
 You'll need installed and configured:
 * an AWS account
 * a recent aws-cli
-* `AWS_DEFAULT_REGION` and `AWS_DEFAULT_PROFILE` set in your environment (Fargate is currently only available in `us-east-1`)
+* `AWS_DEFAULT_REGION` and `AWS_DEFAULT_PROFILE` set in your environment correctly (Fargate is currently only available in `eu-west-1`, `us-east-1`, `us-east-2`, `us-west-2`)
 * a recent Docker installation
 
 ## Howto

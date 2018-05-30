@@ -11,8 +11,6 @@ function finish {
 }
 trap finish EXIT
 
-export AWS_DEFAULT_REGION=us-east-1
-
 echo "getting accountId..."
 accountId=$(set -e; aws sts get-caller-identity --query 'Account' --output text)
 
