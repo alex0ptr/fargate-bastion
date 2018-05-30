@@ -11,6 +11,10 @@ The example consists of:
 * a CloudWatch LogGroup to collect container logs
 * all neccessary IAM policies/roles
 
+Asciinema:
+[![asciicast](https://asciinema.org/a/o4svO0CIu1XD6fCd9meVa5M99.png)](https://asciinema.org/a/o4svO0CIu1XD6fCd9meVa5M99)
+
+
 ## Prerequisites
 
 You'll need installed and configured:
