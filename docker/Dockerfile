@@ -1,20 +1,15 @@
-FROM alpine:3.7
+FROM alpine:3.8
 
 WORKDIR /home
-
-ENV OPENSSH_VERSION 7.5_p1-r8
-ENV PYTHON_VERSION 2.7.14-r2
-ENV TINI_VERSION 0.16.1-r0
-ENV CURL_VERSION 7.60.0-r1
 
 RUN true && \
     echo "installing dependencys..." && \
     apk --update \
         add \
-            curl=${CURL_VERSION} \
-            openssh=${OPENSSH_VERSION} \
-            python=${PYTHON_VERSION} \
-            tini=${TINI_VERSION} \
+            curl \
+            openssh \
+            python \
+            tini \
     && \
     echo "installing aws cli" && \
     wget https://s3.amazonaws.com/aws-cli/awscli-bundle.zip && \
