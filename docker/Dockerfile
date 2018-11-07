@@ -2,8 +2,7 @@ FROM alpine:3.8
 
 WORKDIR /home
 
-RUN true && \
-    echo "installing dependencys..." && \
+RUN echo "installing dependencys..." && \
     apk --update \
         add \
             curl \

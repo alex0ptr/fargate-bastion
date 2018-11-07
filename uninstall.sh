@@ -1,6 +1,7 @@
 #!/bin/sh
 set -e
 set -u
+set -o pipefail
 
 stackName=${1:-bastion-dev}
 

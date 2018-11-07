@@ -1,6 +1,7 @@
 #!/bin/sh
 set -e
 set -u
+set -o pipefail
 
 keyFile=$1
 stackName=${2:-bastion-dev}
